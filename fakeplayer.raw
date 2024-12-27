@@ -1,0 +1,89 @@
+const mineflayer = require('mineflayer');
+const fs = require('fs');
+const readline = require('readline');
+const { exec } = require('child_process');
+
+// Proxy ve kullanıcı adları
+const names = fs.readFileSync('names.txt', 'utf-8').split('\n').map(name => name.trim()).filter(name => name);
+const maxBots = names.length;
+
+if (maxBots === 0) {
+  console.error('Kullanıcı adı bulunamadı. "names.txt" dosyasını kontrol edin.');
+  process.exit(1);
+}
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+rl.question('Sunucu IP adresini girin: ', (serverIp) => {
+  rl.question('Minecraft sürümünü girin (örneğin, 1.8, 1.16.5): ', (serverVersion) => {
+    rl.question(`Kaç sahte oyuncu bağlanmasını istiyorsunuz? (1-${maxBots}): `, async (input) => {
+      const botCount = Math.min(Math.max(parseInt(input), 1), maxBots);
+      console.log(`Başlatılıyor... Sahte oyuncu sayısı: ${botCount}`);
+
+      const messages = ['selamın aleyküm', 'aleyküm selam', 'as'];
+      const randomIndexes = Array.from({ length: 3 }, () => Math.floor(Math.random() * botCount));
+
+      for (let i = 0; i < botCount; i++) {
+        // IP'yi değiştir
+        await changeIP();
+
+        const botName = names[i];
+        try {
+          const bot = mineflayer.createBot({
+            host: serverIp,
+            port: 25565,
+            username: botName,
+            version: serverVersion,
+          });
+
+          bot.on('login', () => {
+            console.log(`${botName} giriş yaptı.`);
+
+            bot.chat('/register asdasdqwe asdasdqwe');
+            setTimeout(() => bot.chat('/login asdasdqwe'), 2000);
+
+            if (randomIndexes.includes(i)) {
+              setTimeout(() => bot.chat(messages[randomIndexes.indexOf(i)]), 4000);
+            }
+
+            // 15 saniye sonra sürekli ileri hareket et
+            setTimeout(() => {
+              console.log(`${botName} sürekli ileri hareket ediyor.`);
+              bot.setControlState('forward', true);
+            }, 15000);
+          });
+
+          bot.on('end', () => {
+            console.log(`${botName} sunucudan ayrıldı.`);
+          });
+
+          bot.on('error', (err) => {
+            console.error(`${botName} bir hata ile karşılaştı:`, err.message);
+          });
+        } catch (err) {
+          console.error(`Bot oluşturulurken bir hata oluştu (${botName}):`, err.message);
+        }
+      }
+
+      rl.close();
+    });
+  });
+});
+
+// IP değişikliği için PowerShell komutu
+function changeIP() {
+  return new Promise((resolve, reject) => {
+    exec('powershell.exe -Command "Get-NetAdapter | Where-Object { $_.Status -eq \'Up\' } | ForEach-Object { New-NetIPAddress -InterfaceAlias $_.Name -IPAddress \'192.168.1.' + Math.floor(Math.random() * 100) + '\' -PrefixLength 24 -DefaultGateway \'192.168.1.1\' }"', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`IP değiştirme hatası: ${stderr}`);
+        reject(stderr);
+      } else {
+        console.log(`Yeni IP adresi değiştirildi: ${stdout}`);
+        resolve();
+      }
+    });
+  });
+}
