@@ -3,6 +3,11 @@ const fs = require('fs');
 const readline = require('readline');
 const { exec } = require('child_process');
 
+// Kullanıcıdan alınan parametreler
+const serverIp = "serverIpPlaceholder";  // Sunucu IP adresi (C# tarafından güncellenecek)
+const serverVersion = "serverVersionPlaceholder";  // Minecraft sürümü (C# tarafından güncellenecek)
+const botCount = parseInt("botCountPlaceholder");  // Bot sayısı (C# tarafından güncellenecek)
+
 // Proxy ve kullanıcı adları
 const names = fs.readFileSync('names.txt', 'utf-8').split('\n').map(name => name.trim()).filter(name => name);
 const maxBots = names.length;
@@ -12,15 +17,16 @@ if (maxBots === 0) {
   process.exit(1);
 }
 
+// Kullanıcıdan sunucu IP, sürüm ve bot sayısı alınacak
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-rl.question('Sunucu IP adresini girin: ', (serverIp) => {
-  rl.question('Minecraft sürümünü girin (örneğin, 1.8, 1.16.5): ', (serverVersion) => {
-    rl.question(`Kaç sahte oyuncu bağlanmasını istiyorsunuz? (1-${maxBots}): `, async (input) => {
-      const botCount = Math.min(Math.max(parseInt(input), 1), maxBots);
+rl.question('Sunucu IP adresini girin: ', (inputServerIp) => {
+  rl.question('Minecraft sürümünü girin (örneğin, 1.8, 1.16.5): ', (inputServerVersion) => {
+    rl.question(`Kaç sahte oyuncu bağlanmasını istiyorsunuz? (1-${maxBots}): `, async (inputBotCount) => {
+      const botCount = Math.min(Math.max(parseInt(inputBotCount), 1), maxBots);
       console.log(`Başlatılıyor... Sahte oyuncu sayısı: ${botCount}`);
 
       const messages = ['selamın aleyküm', 'aleyküm selam', 'as'];
@@ -33,10 +39,10 @@ rl.question('Sunucu IP adresini girin: ', (serverIp) => {
         const botName = names[i];
         try {
           const bot = mineflayer.createBot({
-            host: serverIp,
+            host: inputServerIp,  // C# tarafından alınan server IP
             port: 25565,
             username: botName,
-            version: serverVersion,
+            version: inputServerVersion,  // C# tarafından alınan Minecraft sürümü
           });
 
           bot.on('login', () => {
